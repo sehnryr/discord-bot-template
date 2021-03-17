@@ -1,10 +1,13 @@
 #!/usr/bin/python3
 
-import configparser
 import os
+import sys
+import traceback
+from typing import Iterator
+
+import configparser
 import logging
 import logging.config
-from typing import Iterator
 
 import discord
 from discord.ext import commands
@@ -20,7 +23,7 @@ class Bot(commands.Bot):
         self.token = config["discord"].get("token")
         self.prefix = config["discord"].get("prefix").split()
         self.description = config["discord"].get("description")
-        self.supression_delay = config["discord"].getint("supression_delay")
+        self.supression_delay = config["discord"].getfloat("supression_delay")
 
         self._cogs_dir = config["discord"].get("cogs_dir")
         self._extensions = self.get_extensions()
@@ -51,14 +54,15 @@ class Bot(commands.Bot):
         self.logger.info(f"Discord.py Version: {discord.__version__}")
         self.logger.info("Successfully logged in and booted...!")
 
-        await self.change_presence(activity=discord.Game(name=f"{self.prefix}help"))
-
     async def on_command_error(self, context, e) -> None:
-        await context.message.delete()
+        try:
+            await context.message.delete()
+        except Exception as error:
+            await self.on_error(error)
         await context.send(content=f"`{type(e).__name__}`: {e}", delete_after=self.supression_delay)
         self.logger.error(f"{type(e).__name__}: {e}: Command '{context.message.content.split()[0][1:]}'")
 
-    async def on_error(self, event_method, *args, **kwargs) -> None:
+    async def on_error(self, event, *args, **kwargs) -> None:
         self.logger.error(f"{''.join(traceback.format_exception(*sys.exc_info()))}")
 
     def get_logger(self, config: configparser.ConfigParser) -> logging.Logger:
@@ -140,6 +144,8 @@ class Bot(commands.Bot):
             return self.create_config_file()
 
     def create_config_file(self) -> configparser.ConfigParser:
+        logging.info("Creating config file..")
+
         config = configparser.ConfigParser(
             allow_no_value=True,
             comment_prefixes=None,
