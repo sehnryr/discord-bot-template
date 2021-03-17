@@ -1,4 +1,4 @@
-# !/usr/bin/env python3
+#!/usr/bin/python3
 
 import configparser
 import os
@@ -30,6 +30,7 @@ class Bot(commands.Bot):
         super().__init__(
             command_prefix=self.prefix,
             description=self.description,
+            help_command=None,
             *args,
         )
 
